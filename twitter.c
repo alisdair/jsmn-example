@@ -129,7 +129,7 @@ int main(void)
     size_t trends = 0;
     size_t trend_tokens = 0;
 
-    for (size_t i = 0, j = tokens[i].size; j > 0; i++, j--)
+    for (size_t i = 0, j = 1; j > 0; i++, j--)
     {
         jsmntok_t *t = &tokens[i];
 
