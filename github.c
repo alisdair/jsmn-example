@@ -16,7 +16,10 @@ int main(void)
 
     jsmntok_t *tokens = json_tokenise(js);
 
-    /* The GitHub user API response is a single object. */
+    /* The GitHub user API response is a single object. States required to
+     * parse this are simple: start of the object, keys, values we want to
+     * print, values we want to skip, and then a marker state for the end. */
+
     typedef enum { START, KEY, PRINT, SKIP, STOP } parse_state;
     parse_state state = START;
 
