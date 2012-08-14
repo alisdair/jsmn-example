@@ -59,7 +59,7 @@ jsmntok_t * parse_json(char *js)
     jsmn_parser parser;
     jsmn_init(&parser);
 
-    unsigned int n = JSON_TOKENS;
+    size_t n = JSON_TOKENS;
     jsmntok_t *tokens = malloc(sizeof(jsmntok_t) * n);
     log_null(tokens);
 
@@ -94,17 +94,11 @@ int main(void)
 
     jsmntok_t *tokens = parse_json(js);
 
-    unsigned int i = 0;
-    jsmntok_t *t = &tokens[i];
-
-    if (t->type != JSMN_ARRAY || t->size != 1)
-        log_die("twitter: result should be an array of size 1");
-
-    for (unsigned int remaining = t->size; remaining > 0; remaining--)
+    for (size_t i = 0, j = tokens[i].size; j > 0; i++, j--)
     {
-        printf("Elements remaining: %u\n", remaining);
+        printf("Elements remaining: %lu\n", j);
 
-        t = &tokens[++i];
+        jsmntok_t *t = &tokens[i];
 
         // Should never reach uninitialized tokens
         log_assert(t->start != -1 && t->end != -1);
@@ -112,7 +106,7 @@ int main(void)
         if (t->type == JSMN_ARRAY || t->type == JSMN_OBJECT)
         {
             printf("Found token with %u more elements inside\n", t->size);
-            remaining += t->size;
+            j += t->size;
         }
 
         TOKEN_PRINT(tokens[i]);
