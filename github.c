@@ -44,6 +44,9 @@ int main(void)
                 state = KEY;
                 object_tokens = t->size;
 
+                if (object_tokens == 0)
+                    state = STOP;
+
                 if (object_tokens % 2 != 0)
                     log_die("Invalid response: object must have even number of children.");
 
