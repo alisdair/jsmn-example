@@ -2,6 +2,7 @@ buf.o
 github
 github.o
 jsmn.o
+json.o
 log.o
 twitter
 twitter.o

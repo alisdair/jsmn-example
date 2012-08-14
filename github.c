@@ -3,100 +3,18 @@
 #include <curl/curl.h>
 #include "jsmn.h"
 
+#include "json.h"
 #include "log.h"
 #include "buf.h"
 
 char URL[] = "https://api.github.com/users/alisdair";
 char *KEYS[] = { "name", "location", "public_repos", "hireable" };
 
-#define BUFFER_SIZE 32768
-#define JSON_TOKENS 256
-
-static size_t fetch_data(void *buffer, size_t size, size_t nmemb, void *userp)
-{
-    buf_t *buf = (buf_t *) userp;
-    size_t total = size * nmemb;
-
-    if (buf->limit - buf->len < total)
-    {
-        buf = buf_size(buf, buf->limit + total);
-        log_null(buf);
-    }
-
-    buf_concat(buf, buffer, total);
-
-    return total;
-}
-
-char * fetch_json(char *url)
-{
-    CURL *curl = curl_easy_init();
-    log_null(curl);
-
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-
-    buf_t *buf = buf_size(NULL, BUFFER_SIZE);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fetch_data);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, buf);
-
-    struct curl_slist *hs = curl_slist_append(NULL, "Accept: application/json");
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hs);
-
-    CURLcode res = curl_easy_perform(curl);
-    if (res != CURLE_OK)
-        log_die("curl_easy_perform failed: %s", curl_easy_strerror(res));
-
-    curl_easy_cleanup(curl);
-    curl_slist_free_all(hs);
-
-    char *js = buf_tostr(buf);
-    free(buf);
-
-    return js;
-}
-
-jsmntok_t * parse_json(char *js)
-{
-    jsmn_parser parser;
-    jsmn_init(&parser);
-
-    size_t n = JSON_TOKENS;
-    jsmntok_t *tokens = malloc(sizeof(jsmntok_t) * n);
-    log_null(tokens);
-
-    int ret = jsmn_parse(&parser, js, tokens, n);
-
-    while (ret == JSMN_ERROR_NOMEM)
-    {
-        n = n * 2 + 1;
-        tokens = realloc(tokens, sizeof(jsmntok_t) * n);
-        log_null(tokens);
-        ret = jsmn_parse(&parser, js, tokens, n);
-    }
-
-    if (ret == JSMN_ERROR_INVAL)
-        log_die("jsmn_parse: invalid JSON string");
-    if (ret == JSMN_ERROR_PART)
-        log_die("jsmn_parse: truncated JSON string");
-
-    return tokens;
-}
-
-#define TOKEN_STREQ(js, t, s) \
-            (strncmp(js+(t)->start, s, (t)->end - (t)->start) == 0 \
-                      && strlen(s) == (t)->end - (t)->start)
-
-char * token_tostr(char *js, jsmntok_t *t)
-{
-    js[t->end] = '\0';
-    return js + t->start;
-}
-
 int main(void)
 {
-    char *js = fetch_json(URL);
+    char *js = json_fetch(URL);
 
-    jsmntok_t *tokens = parse_json(js);
+    jsmntok_t *tokens = json_tokenise(js);
 
     /* The GitHub user API response is a single object. */
     typedef enum { START, KEY, PRINT, SKIP, END } parse_state;
@@ -138,7 +56,7 @@ int main(void)
 
                 for (size_t i = 0; i < sizeof(KEYS)/sizeof(char *); i++)
                 {
-                    if (TOKEN_STREQ(js, t, KEYS[i]))
+                    if (json_token_streq(js, t, KEYS[i]))
                     {
                         printf("%s: ", KEYS[i]);
                         state = PRINT;
@@ -164,7 +82,7 @@ int main(void)
                 if (t->type != JSMN_STRING && t->type != JSMN_PRIMITIVE)
                     log_die("Invalid response: object values must be strings or primitives.");
 
-                char *str = token_tostr(js, t);
+                char *str = json_token_tostr(js, t);
                 puts(str);
 
                 object_tokens--;
