@@ -40,8 +40,14 @@ int main(void)
         SKIP,
         STOP
     } parse_state;
-    parse_state state = START, next = STOP;
 
+    // state is the current state of the parser
+    parse_state state = START;
+
+    // stack is the state we return to when reaching the end of an object
+    parse_state stack = STOP;
+
+    // Counters to keep track of how far through parsing we are
     size_t object_tokens = 0;
     size_t skip_tokens = 0;
     size_t trends = 0;
@@ -88,7 +94,7 @@ int main(void)
                 else if (t->type == JSMN_ARRAY || t->type == JSMN_OBJECT)
                 {
                     state = SKIP;
-                    next = OBJECT;
+                    stack = OBJECT;
                     skip_tokens = t->size;
                 }
 
@@ -105,7 +111,7 @@ int main(void)
                     skip_tokens += t->size;
 
                 if (skip_tokens == 0)
-                    state = next;
+                    state = stack;
 
                 break;
 
@@ -115,7 +121,7 @@ int main(void)
 
                 trends = t->size;
                 state = ARRAY;
-                next = ARRAY;
+                stack = ARRAY;
 
                 // No trends found
                 if (trends == 0)
@@ -135,7 +141,7 @@ int main(void)
 
                 // Last trend object
                 if (trends == 0)
-                    next = STOP;
+                    stack = STOP;
 
                 break;
 
@@ -163,13 +169,13 @@ int main(void)
                 else if (t->type == JSMN_ARRAY || t->type == JSMN_OBJECT)
                 {
                     state = SKIP;
-                    next = TREND;
+                    stack = TREND;
                     skip_tokens = t->size;
                 }
 
                 // Last object value
                 if (trend_tokens == 0)
-                    state = next;
+                    state = stack;
 
                 break;
 
