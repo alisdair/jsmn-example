@@ -17,7 +17,7 @@ int main(void)
     jsmntok_t *tokens = json_tokenise(js);
 
     /* The GitHub user API response is a single object. */
-    typedef enum { START, KEY, PRINT, SKIP, END } parse_state;
+    typedef enum { START, KEY, PRINT, SKIP, STOP } parse_state;
     parse_state state = START;
 
     size_t object_tokens = 0;
@@ -74,7 +74,7 @@ int main(void)
                 state = KEY;
 
                 if (object_tokens == 0)
-                    state = END;
+                    state = STOP;
 
                 break;
 
@@ -89,11 +89,11 @@ int main(void)
                 state = KEY;
 
                 if (object_tokens == 0)
-                    state = END;
+                    state = STOP;
 
                 break;
 
-            case END:
+            case STOP:
                 // Just consume the tokens
                 break;
 

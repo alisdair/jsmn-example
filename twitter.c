@@ -38,9 +38,9 @@ int main(void)
         TRENDS, ARRAY,
         TREND, NAME,
         SKIP,
-        END
+        STOP
     } parse_state;
-    parse_state state = START, next = END;
+    parse_state state = START, next = STOP;
 
     size_t object_tokens = 0;
     size_t skip_tokens = 0;
@@ -94,7 +94,7 @@ int main(void)
 
                 // Last object value
                 if (object_tokens == 0)
-                    state = END;
+                    state = STOP;
 
                 break;
 
@@ -119,7 +119,7 @@ int main(void)
 
                 // No trends found
                 if (trends == 0)
-                    state = END;
+                    state = STOP;
 
                 break;
 
@@ -131,11 +131,11 @@ int main(void)
 
                 // Empty trend object
                 if (trend_tokens == 0)
-                    state = END;
+                    state = STOP;
 
                 // Last trend object
                 if (trends == 0)
-                    next = END;
+                    next = STOP;
 
                 break;
 
@@ -173,7 +173,7 @@ int main(void)
 
                 break;
 
-            case END:
+            case STOP:
                 // Just consume the tokens
                 break;
 
