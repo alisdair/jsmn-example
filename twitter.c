@@ -81,12 +81,15 @@ jsmntok_t * parse_json(char *js)
     return tokens;
 }
 
-#define TOKEN_STRING(js, t, s) \
-            (strncmp(js+(t).start, s, (t).end - (t).start) == 0 \
-                      && strlen(s) == (t).end - (t).start)
+#define TOKEN_STREQ(js, t, s) \
+            (strncmp(js+(t)->start, s, (t)->end - (t)->start) == 0 \
+                      && strlen(s) == (t)->end - (t)->start)
 
-#define TOKEN_PRINT(t) \
-            printf("start: %d, end: %d, type: %d\n", (t).start, (t).end, (t).type)
+char * token_tostr(char *js, jsmntok_t *t)
+{
+    js[t->end] = '\0';
+    return js + t->start;
+}
 
 int main(void)
 {
@@ -94,22 +97,92 @@ int main(void)
 
     jsmntok_t *tokens = parse_json(js);
 
+    enum { START, TRENDS, ARRAY, OBJECT, NAME, END } state = START, next = END;
+    size_t trends = 0;
+    size_t trend_tokens = 0;
+
     for (size_t i = 0, j = tokens[i].size; j > 0; i++, j--)
     {
-        printf("Elements remaining: %lu\n", j);
-
         jsmntok_t *t = &tokens[i];
 
         // Should never reach uninitialized tokens
         log_assert(t->start != -1 && t->end != -1);
 
         if (t->type == JSMN_ARRAY || t->type == JSMN_OBJECT)
-        {
-            printf("Found token with %u more elements inside\n", t->size);
             j += t->size;
-        }
 
-        TOKEN_PRINT(tokens[i]);
+        switch (state)
+        {
+            case START:
+                if (t->type == JSMN_STRING && TOKEN_STREQ(js, t, "trends"))
+                    state = TRENDS;
+                break;
+
+            case TRENDS:
+                if (t->type != JSMN_ARRAY)
+                    log_die("Unknown trends value: expected array.");
+
+                trends = t->size;
+                state = ARRAY;
+                next = ARRAY;
+
+                // No trends found
+                if (trends == 0)
+                    state = END;
+
+                break;
+
+            case ARRAY:
+                trends--;
+
+                trend_tokens = t->size;
+                state = OBJECT;
+
+                // Empty trend object
+                if (trend_tokens == 0)
+                    state = END;
+
+                // Last trend object
+                if (trends == 0)
+                    next = END;
+
+                break;
+
+            case OBJECT:
+            case NAME:
+                trend_tokens--;
+
+                // Keys are odd-numbered tokens within the object
+                if (trend_tokens % 2 == 1)
+                {
+                    if (t->type == JSMN_STRING && TOKEN_STREQ(js, t, "name"))
+                        state = NAME;
+                }
+                // Only care about values in the NAME state
+                else if (state == NAME)
+                {
+                    if (t->type != JSMN_STRING)
+                        log_die("Invalid trend name.");
+
+                    char *str = token_tostr(js, t);
+                    puts(str);
+
+                    state = OBJECT;
+                }
+
+                // Last object value
+                if (trend_tokens == 0)
+                    state = next;
+
+                break;
+
+            case END:
+                // Just consume the tokens
+                break;
+
+            default:
+                log_die("Invalid state %u", state);
+        }
     }
 
     return 0;
