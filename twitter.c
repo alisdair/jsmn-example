@@ -97,7 +97,35 @@ int main(void)
 
     jsmntok_t *tokens = parse_json(js);
 
-    enum { START, TRENDS, ARRAY, OBJECT, NAME, END } state = START, next = END;
+    /* The Twitter trends API response is in this format:
+     *
+     * [
+     *   {
+     *      ...,
+     *      "trends": [
+     *          {
+     *              ...,
+     *              "name": "TwitterChillers",
+     *          },
+     *          ...,
+     *      ],
+     *      ...,
+     *   }
+     * ]
+     *
+     */
+    typedef enum {
+        START,
+        WRAPPER, OBJECT,
+        TRENDS, ARRAY,
+        TREND, NAME,
+        SKIP,
+        END
+    } parse_state;
+    parse_state state = START, next = END;
+
+    size_t object_tokens = 0;
+    size_t skip_tokens = 0;
     size_t trends = 0;
     size_t trend_tokens = 0;
 
@@ -114,8 +142,53 @@ int main(void)
         switch (state)
         {
             case START:
-                if (t->type == JSMN_STRING && TOKEN_STREQ(js, t, "trends"))
-                    state = TRENDS;
+                if (t->type != JSMN_ARRAY)
+                    log_die("Invalid response: root element must be array.");
+                if (t->size != 1)
+                    log_die("Invalid response: array must have one element.");
+
+                state = WRAPPER;
+                break;
+
+            case WRAPPER:
+                if (t->type != JSMN_OBJECT)
+                    log_die("Invalid response: wrapper must be an object.");
+
+                state = OBJECT;
+                object_tokens = t->size;
+                break;
+
+            case OBJECT:
+                object_tokens--;
+
+                // Keys are odd-numbered tokens within the object
+                if (object_tokens % 2 == 1)
+                {
+                    if (t->type == JSMN_STRING && TOKEN_STREQ(js, t, "trends"))
+                        state = TRENDS;
+                }
+                else if (t->type == JSMN_ARRAY || t->type == JSMN_OBJECT)
+                {
+                    state = SKIP;
+                    next = OBJECT;
+                    skip_tokens = t->size;
+                }
+
+                // Last object value
+                if (object_tokens == 0)
+                    state = END;
+
+                break;
+
+            case SKIP:
+                skip_tokens--;
+
+                if (t->type == JSMN_ARRAY || t->type == JSMN_OBJECT)
+                    skip_tokens += t->size;
+
+                if (skip_tokens == 0)
+                    state = next;
+
                 break;
 
             case TRENDS:
@@ -136,7 +209,7 @@ int main(void)
                 trends--;
 
                 trend_tokens = t->size;
-                state = OBJECT;
+                state = TREND;
 
                 // Empty trend object
                 if (trend_tokens == 0)
@@ -148,11 +221,8 @@ int main(void)
 
                 break;
 
-            case OBJECT:
+            case TREND:
             case NAME:
-                if (t->type != JSMN_STRING && t->type != JSMN_PRIMITIVE)
-                    log_die("Invalid trend key/value.");
-
                 trend_tokens--;
 
                 // Keys are odd-numbered tokens within the object
@@ -170,7 +240,13 @@ int main(void)
                     char *str = token_tostr(js, t);
                     puts(str);
 
-                    state = OBJECT;
+                    state = TREND;
+                }
+                else if (t->type == JSMN_ARRAY || t->type == JSMN_OBJECT)
+                {
+                    state = SKIP;
+                    next = TREND;
+                    skip_tokens = t->size;
                 }
 
                 // Last object value
