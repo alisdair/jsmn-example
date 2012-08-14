@@ -150,6 +150,9 @@ int main(void)
 
             case OBJECT:
             case NAME:
+                if (t->type != JSMN_STRING && t->type != JSMN_PRIMITIVE)
+                    log_die("Invalid trend key/value.");
+
                 trend_tokens--;
 
                 // Keys are odd-numbered tokens within the object
