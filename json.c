@@ -56,7 +56,7 @@ jsmntok_t * json_tokenise(char *js)
     jsmn_parser parser;
     jsmn_init(&parser);
 
-    size_t n = JSON_TOKENS;
+    unsigned int n = JSON_TOKENS;
     jsmntok_t *tokens = malloc(sizeof(jsmntok_t) * n);
     log_null(tokens);
 
@@ -81,7 +81,7 @@ jsmntok_t * json_tokenise(char *js)
 bool json_token_streq(char *js, jsmntok_t *t, char *s)
 {
     return (strncmp(js + t->start, s, t->end - t->start) == 0
-            && strlen(s) == t->end - t->start);
+            && strlen(s) == (size_t) (t->end - t->start));
 }
 
 char * json_token_tostr(char *js, jsmntok_t *t)
