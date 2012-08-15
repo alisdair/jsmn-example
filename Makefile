@@ -16,12 +16,4 @@ twitter: $(OBJS) twitter.o
 github: $(OBJS) github.o
 	$(CC) $(LDFLAGS) -o $@ $^
 
-%.o: %.c
-	$(CC) $(CFLAGS) -o $@ $^
-
-.gitignore: Makefile
-	echo $(TARGETS) $(OBJS) twitter.o github.o | xargs -n 1 >> .gitignore
-	sort -u < .gitignore > .gitignore.sorted
-	mv .gitignore.sorted .gitignore
-
 .PHONY: all clean
