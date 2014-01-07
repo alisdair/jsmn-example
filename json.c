@@ -47,6 +47,7 @@ char * json_fetch(char *url)
     curl_slist_free_all(hs);
 
     char *js = buf_tostr(buf);
+    free(buf->data);
     free(buf);
 
     return js;
