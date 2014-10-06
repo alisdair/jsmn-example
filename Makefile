@@ -1,4 +1,4 @@
-CFLAGS+=-Wall -Werror -std=gnu99 -O2 -c
+CFLAGS+=-Wall -Werror -std=gnu99 -O2 
 LDFLAGS+=`curl-config --libs`
 
 TARGETS=twitter github
@@ -11,9 +11,9 @@ clean:
 	$(RM) $(OBJS)
 
 twitter: $(OBJS) twitter.o
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 github: $(OBJS) github.o
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) -o $@ $^ $(LDFLAGS) 
 
 .PHONY: all clean
