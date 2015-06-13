@@ -50,6 +50,7 @@ char * buf_tostr(buf_t *buf)
     log_null(buf);
 
     char *str = malloc(buf->len + 1);
+    log_null(str);
 
     memcpy(str, buf->data, buf->len);
     str[buf->len] = '\0';
