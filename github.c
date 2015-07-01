@@ -32,8 +32,11 @@ int main(void)
         // Should never reach uninitialized tokens
         log_assert(t->start != -1 && t->end != -1);
 
-        if (t->type == JSMN_ARRAY || t->type == JSMN_OBJECT)
+        if (t->type == JSMN_ARRAY)
             j += t->size;
+
+        if (t->type == JSMN_OBJECT)
+            j += t->size * 2;
 
         switch (state)
         {
@@ -53,8 +56,6 @@ int main(void)
                 break;
 
             case KEY:
-                object_tokens--;
-
                 if (t->type != JSMN_STRING)
                     log_die("Invalid response: object keys must be strings.");
 

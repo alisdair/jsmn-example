@@ -55,6 +55,7 @@ char * json_fetch(char *url)
 
 jsmntok_t * json_tokenise(char *js)
 {
+    size_t jslen = strlen(js);
     jsmn_parser parser;
     jsmn_init(&parser);
 
@@ -62,14 +63,14 @@ jsmntok_t * json_tokenise(char *js)
     jsmntok_t *tokens = malloc(sizeof(jsmntok_t) * n);
     log_null(tokens);
 
-    int ret = jsmn_parse(&parser, js, tokens, n);
+    int ret = jsmn_parse(&parser, js, jslen, tokens, n);
 
     while (ret == JSMN_ERROR_NOMEM)
     {
         n = n * 2 + 1;
         tokens = realloc(tokens, sizeof(jsmntok_t) * n);
         log_null(tokens);
-        ret = jsmn_parse(&parser, js, tokens, n);
+        ret = jsmn_parse(&parser, js, jslen, tokens, n);
     }
 
     if (ret == JSMN_ERROR_INVAL)
